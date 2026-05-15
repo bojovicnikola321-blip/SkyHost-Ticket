@@ -1,45 +1,54 @@
-# [Project name]
+# SkyHost Discord Bot
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Discord bot za server **SkyHost** — ticket sistem, welcome poruke, moderacija i auto role.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — pokretanje servera i bota (port 5000)
+- `pnpm run typecheck` — typecheck svih paketa
+- Required env: `DISCORD_TOKEN` — Discord bot token
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Discord: discord.js v14
+- Build: esbuild (ESM bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/api-server/src/bot/` — sav bot kod
+- `artifacts/api-server/src/bot/commands/` — slash komande
+- `artifacts/api-server/src/bot/events/` — event handleri
+- `artifacts/api-server/src/index.ts` — pokretanje servera + bota
+
+## Bot komande
+
+| Komanda | Opis |
+|---|---|
+| `/ticket setup` | Postavi ticket panel u kanal |
+| `/ticket close` | Zatvori ticket kanal |
+| `/panel` | Pošalji info panel embed |
+| `/welcome set` | Postavi welcome kanal i poruku |
+| `/welcome off` | Isključi welcome poruke |
+| `/mute` | Timeout korisnika (1 min – 28 dana) |
+| `/ban` | Ban korisnika |
+| `/kick` | Kick korisnika |
+| `/autorole set` | Postavi auto rolu za nove članove |
+| `/autorole off` | Isključi auto rolu |
+| `/autorole info` | Prikaži trenutnu auto rolu |
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
-
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Bot i Express server rade u istom procesu
+- Welcome config i auto role podaci čuvaju se u memoriji (Map) — resetuju se pri restartu
+- Slash komande se registruju globalno pri svakom pokretanju bota
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Korisnik govori bosanski/srpski/hrvatski jezik
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Pri promjeni slash komandi, Discord može trebati do 1h da ih propagira globalno
+- Welcome i autorole podaci se gube pri restartu — u budućoj verziji dodati DB perzistenciju
