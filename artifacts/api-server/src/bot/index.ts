@@ -40,13 +40,7 @@ for (const cmd of allCommands) {
   commands.set(cmd.data.name, cmd);
 }
 
-export async function startBot(): Promise<void> {
-  const token = process.env["DISCORD_TOKEN"];
-  if (!token) {
-    logger.error("DISCORD_TOKEN is not set — bot will not start");
-    return;
-  }
-
+async function startSingleBot(token: string, label: string): Promise<void> {
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -59,7 +53,7 @@ export async function startBot(): Promise<void> {
   });
 
   client.once("ready", async (c) => {
-    logger.info({ tag: c.user.tag }, "Discord bot is ready");
+    logger.info({ tag: c.user.tag, label }, "Discord bot is ready");
 
     const rest = new REST().setToken(token);
     const commandData = allCommands.map((cmd) => cmd.data.toJSON());
@@ -68,9 +62,9 @@ export async function startBot(): Promise<void> {
       await rest.put(Routes.applicationCommands(c.user.id), {
         body: commandData,
       });
-      logger.info("Slash commands registered globally");
+      logger.info({ label }, "Slash commands registered globally");
     } catch (err) {
-      logger.error({ err }, "Failed to register slash commands");
+      logger.error({ err, label }, "Failed to register slash commands");
     }
   });
 
@@ -79,5 +73,41 @@ export async function startBot(): Promise<void> {
     handleInteractionCreate(interaction)
   );
 
+  client.on("error", (err) => {
+    logger.error({ err, label }, "Discord client error");
+  });
+
   await client.login(token);
+}
+
+export async function startBot(): Promise<void> {
+  const tokenKeys = [
+    { key: "DISCORD_TOKEN", label: "Bot 1 (SkyHost)" },
+    { key: "DISCORD_TOKEN_2", label: "Bot 2" },
+    { key: "DISCORD_TOKEN_3", label: "Bot 3" },
+    { key: "DISCORD_TOKEN_4", label: "Bot 4" },
+  ];
+
+  const startPromises: Promise<void>[] = [];
+
+  for (const { key, label } of tokenKeys) {
+    const token = process.env[key];
+    if (!token) {
+      logger.warn({ key }, `Token not set — ${label} will not start`);
+      continue;
+    }
+
+    startPromises.push(
+      startSingleBot(token, label).catch((err) => {
+        logger.error({ err, label }, "Bot failed to start");
+      })
+    );
+  }
+
+  if (startPromises.length === 0) {
+    logger.error("No Discord tokens found — no bots will start");
+    return;
+  }
+
+  await Promise.all(startPromises);
 }
