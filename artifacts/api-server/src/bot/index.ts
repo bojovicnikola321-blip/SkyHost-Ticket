@@ -18,6 +18,7 @@ import { kickCommand } from "./commands/kick";
 import { autoroleCommand } from "./commands/autorole";
 import { handleGuildMemberAdd } from "./events/guildMemberAdd";
 import { handleInteractionCreate } from "./events/interactionCreate";
+import { botLangRegistry, type Lang } from "./i18n";
 
 export type BotCommand = {
   data: SlashCommandBuilder | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
@@ -40,7 +41,7 @@ for (const cmd of allCommands) {
   commands.set(cmd.data.name, cmd);
 }
 
-async function startSingleBot(token: string, label: string): Promise<void> {
+async function startSingleBot(token: string, label: string, lang: Lang): Promise<void> {
   const client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -53,7 +54,8 @@ async function startSingleBot(token: string, label: string): Promise<void> {
   });
 
   client.once("ready", async (c) => {
-    logger.info({ tag: c.user.tag, label }, "Discord bot is ready");
+    botLangRegistry.set(c.user.id, lang);
+    logger.info({ tag: c.user.tag, label, lang }, "Discord bot is ready");
 
     const rest = new REST().setToken(token);
     const commandData = allCommands.map((cmd) => cmd.data.toJSON());
@@ -81,16 +83,16 @@ async function startSingleBot(token: string, label: string): Promise<void> {
 }
 
 export async function startBot(): Promise<void> {
-  const tokenKeys = [
-    { key: "DISCORD_TOKEN", label: "Bot 1 (SkyHost)" },
-    { key: "DISCORD_TOKEN_2", label: "Bot 2" },
-    { key: "DISCORD_TOKEN_3", label: "Bot 3" },
-    { key: "DISCORD_TOKEN_4", label: "Bot 4" },
+  const tokenConfigs: { key: string; label: string; lang: Lang }[] = [
+    { key: "DISCORD_TOKEN",   label: "Bot 1 (SkyHost)", lang: "en" },
+    { key: "DISCORD_TOKEN_2", label: "Bot 2",           lang: "bs" },
+    { key: "DISCORD_TOKEN_3", label: "Bot 3",           lang: "bs" },
+    { key: "DISCORD_TOKEN_4", label: "Bot 4",           lang: "bs" },
   ];
 
   const startPromises: Promise<void>[] = [];
 
-  for (const { key, label } of tokenKeys) {
+  for (const { key, label, lang } of tokenConfigs) {
     const token = process.env[key];
     if (!token) {
       logger.warn({ key }, `Token not set — ${label} will not start`);
@@ -98,7 +100,7 @@ export async function startBot(): Promise<void> {
     }
 
     startPromises.push(
-      startSingleBot(token, label).catch((err) => {
+      startSingleBot(token, label, lang).catch((err) => {
         logger.error({ err, label }, "Bot failed to start");
       })
     );

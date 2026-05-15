@@ -8,63 +8,53 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import type { BotCommand } from "../index";
+import { t } from "../i18n";
 
 export const panelCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("panel")
-    .setDescription("Pošalji info/admin panel embed u trenutni kanal")
+    .setDescription("Send an info/admin panel embed to the current channel")
     .addStringOption((opt) =>
-      opt
-        .setName("naslov")
-        .setDescription("Naslov panela")
-        .setRequired(false)
+      opt.setName("title").setDescription("Panel title").setRequired(false)
     )
     .addStringOption((opt) =>
-      opt
-        .setName("opis")
-        .setDescription("Opis panela")
-        .setRequired(false)
+      opt.setName("description").setDescription("Panel description").setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const title = interaction.options.getString("naslov") ?? "🌐 SkyHost Panel";
-    const desc =
-      interaction.options.getString("opis") ??
-      "Dobrodošli na **SkyHost** server!\nKoristite dugmad ispod za brzi pristup.";
+    const app = interaction.applicationId;
+    const title = interaction.options.getString("title") ?? t(app, "panel_title");
+    const desc = interaction.options.getString("description") ?? undefined;
 
     const embed = new EmbedBuilder()
       .setTitle(title)
-      .setDescription(desc)
+      .setDescription(desc ?? `Welcome!\nUse the buttons below for quick access.`)
       .setColor(0x00b4d8)
       .addFields(
-        { name: "🎫 Support", value: "Otvori ticket za pomoć", inline: true },
-        { name: "📋 Pravila", value: "Poštuj pravila servera", inline: true },
-        { name: "📢 Novosti", value: "Prati announcements", inline: true }
+        { name: t(app, "panel_field_support"), value: t(app, "panel_field_support_val"), inline: true },
+        { name: t(app, "panel_field_rules"),   value: t(app, "panel_field_rules_val"),   inline: true },
+        { name: t(app, "panel_field_news"),    value: t(app, "panel_field_news_val"),    inline: true }
       )
-      .setFooter({ text: "SkyHost | Hosting Panel" })
+      .setFooter({ text: t(app, "panel_footer") })
       .setTimestamp();
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId("panel_rules")
-        .setLabel("📋 Pravila")
+        .setLabel(t(app, "panel_btn_rules"))
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId("panel_support")
-        .setLabel("🎫 Support")
+        .setLabel(t(app, "panel_btn_support"))
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
-        .setLabel("🌐 Website")
+        .setLabel(t(app, "panel_btn_website"))
         .setStyle(ButtonStyle.Link)
         .setURL("https://skyhost.ba")
     );
 
-    await interaction.reply({
-      content: "✅ Panel je poslan!",
-      flags: 64,
-    });
-
+    await interaction.reply({ content: t(app, "panel_sent"), flags: 64 });
     await interaction.channel?.send({ embeds: [embed], components: [row] });
   },
 };

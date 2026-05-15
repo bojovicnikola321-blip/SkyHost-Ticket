@@ -3,10 +3,10 @@ import {
   ChannelType,
   PermissionFlagsBits,
   EmbedBuilder,
-  PermissionsBitField,
 } from "discord.js";
 import { commands } from "../index";
 import { logger } from "../../lib/logger";
+import { t } from "../i18n";
 
 export async function handleInteractionCreate(
   interaction: Interaction
@@ -19,7 +19,7 @@ export async function handleInteractionCreate(
       await command.execute(interaction);
     } catch (err) {
       logger.error({ err, command: interaction.commandName }, "Command error");
-      const msg = { content: "❌ Greška pri izvršavanju komande.", flags: 64 as const };
+      const msg = { content: t(interaction.applicationId, "cmd_error"), flags: 64 as const };
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp(msg);
       } else {
@@ -30,11 +30,11 @@ export async function handleInteractionCreate(
   }
 
   if (interaction.isButton()) {
-    const { customId, guild, member } = interaction;
+    const { customId, guild } = interaction;
+    const app = interaction.applicationId;
 
     if (customId.startsWith("ticket_open:")) {
       const supportRoleId = customId.split(":")[1];
-
       if (!guild) return;
 
       const existing = guild.channels.cache.find(
@@ -46,7 +46,7 @@ export async function handleInteractionCreate(
 
       if (existing) {
         await interaction.reply({
-          content: `❌ Već imaš otvoren ticket: ${existing}`,
+          content: t(app, "ticket_already_open", { channel: `${existing}` }),
           flags: 64,
         });
         return;
@@ -56,10 +56,7 @@ export async function handleInteractionCreate(
         name: `ticket-${interaction.user.username.toLowerCase()}`,
         type: ChannelType.GuildText,
         permissionOverwrites: [
-          {
-            id: guild.id,
-            deny: [PermissionFlagsBits.ViewChannel],
-          },
+          { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
           {
             id: interaction.user.id,
             allow: [
@@ -81,12 +78,12 @@ export async function handleInteractionCreate(
       });
 
       const embed = new EmbedBuilder()
-        .setTitle("🎫 Ticket Otvoren")
+        .setTitle(t(app, "ticket_opened_title"))
         .setDescription(
-          `Pozdrav <@${interaction.user.id}>!\nOpiši problem i support tim će ti pomoći.\n\nKoristi \`/ticket close\` za zatvaranje.`
+          t(app, "ticket_opened_desc", { user: `<@${interaction.user.id}>` })
         )
         .setColor(0x5865f2)
-        .setFooter({ text: "SkyHost Support" })
+        .setFooter({ text: t(app, "ticket_opened_footer") })
         .setTimestamp();
 
       await channel.send({
@@ -95,24 +92,17 @@ export async function handleInteractionCreate(
       });
 
       await interaction.reply({
-        content: `✅ Ticket je otvoren: ${channel}`,
+        content: t(app, "ticket_opened_reply", { channel: `${channel}` }),
         flags: 64,
       });
     }
 
     if (customId === "panel_rules") {
-      await interaction.reply({
-        content:
-          "📋 **Pravila servera:**\n1. Poštuj sve članove\n2. Nema spam/flood poruka\n3. Nema NSFW sadržaja\n4. Koristi kanale za svoju namjenu\n5. Slušaj admins/moderatore",
-        flags: 64,
-      });
+      await interaction.reply({ content: t(app, "panel_rules_content"), flags: 64 });
     }
 
     if (customId === "panel_support") {
-      await interaction.reply({
-        content: "🎫 Otvori ticket koristeći ticket panel ili `/ticket setup`.",
-        flags: 64,
-      });
+      await interaction.reply({ content: t(app, "panel_support_content"), flags: 64 });
     }
   }
 }

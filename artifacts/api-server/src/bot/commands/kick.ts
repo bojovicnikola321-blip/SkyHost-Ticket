@@ -4,26 +4,27 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import type { BotCommand } from "../index";
+import { t } from "../i18n";
 
 export const kickCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("kick")
-    .setDescription("Kickuj korisnika sa servera")
+    .setDescription("Kick a user from the server")
     .addUserOption((opt) =>
-      opt.setName("korisnik").setDescription("Korisnik").setRequired(true)
+      opt.setName("user").setDescription("User").setRequired(true)
     )
     .addStringOption((opt) =>
-      opt.setName("razlog").setDescription("Razlog kicka").setRequired(false)
+      opt.setName("reason").setDescription("Reason for kick").setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const target = interaction.options.getMember("korisnik");
-    const razlog =
-      interaction.options.getString("razlog") ?? "Nije naveden razlog";
+    const app = interaction.applicationId;
+    const target = interaction.options.getMember("user");
+    const reason = interaction.options.getString("reason") ?? t(app, "no_reason");
 
     if (!target || typeof target !== "object" || !("kick" in target)) {
-      await interaction.reply({ content: "❌ Korisnik nije pronađen.", flags: 64 });
+      await interaction.reply({ content: t(app, "kick_not_found"), flags: 64 });
       return;
     }
 
@@ -34,17 +35,14 @@ export const kickCommand: BotCommand = {
     };
 
     if (member.permissions.has(PermissionFlagsBits.Administrator)) {
-      await interaction.reply({
-        content: "❌ Ne mogu da kickujem admina.",
-        flags: 64,
-      });
+      await interaction.reply({ content: t(app, "kick_is_admin"), flags: 64 });
       return;
     }
 
-    await member.kick(razlog);
+    await member.kick(reason);
 
     await interaction.reply({
-      content: `👢 **${member.user.tag}** je kickovan!\n📋 Razlog: ${razlog}`,
+      content: t(app, "kick_success", { user: member.user.tag, reason }),
     });
   },
 };

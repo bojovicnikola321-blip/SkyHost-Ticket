@@ -9,54 +9,54 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import type { BotCommand } from "../index";
+import { t } from "../i18n";
 
 export const ticketCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("ticket")
-    .setDescription("Upravljanje ticket sistemom")
+    .setDescription("Ticket system management")
     .addSubcommand((sub) =>
       sub
         .setName("setup")
-        .setDescription("Postavi ticket kanal")
+        .setDescription("Set up ticket panel")
         .addChannelOption((opt) =>
           opt
-            .setName("kanal")
-            .setDescription("Kanal u koji se šalje ticket panel")
+            .setName("channel")
+            .setDescription("Channel to send the ticket panel to")
             .addChannelTypes(ChannelType.GuildText)
             .setRequired(true)
         )
         .addRoleOption((opt) =>
           opt
-            .setName("support_rola")
-            .setDescription("Rola koja vidi tickete")
+            .setName("support_role")
+            .setDescription("Role that can see tickets")
             .setRequired(true)
         )
     )
     .addSubcommand((sub) =>
-      sub.setName("close").setDescription("Zatvori trenutni ticket")
+      sub.setName("close").setDescription("Close current ticket")
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction) {
     const sub = interaction.options.getSubcommand();
+    const app = interaction.applicationId;
 
     if (sub === "setup") {
-      const channel = interaction.options.getChannel("kanal", true);
-      const role = interaction.options.getRole("support_rola", true);
+      const channel = interaction.options.getChannel("channel", true);
+      const role = interaction.options.getRole("support_role", true);
 
       const embed = new EmbedBuilder()
-        .setTitle("🎫 SkyHost Support")
-        .setDescription(
-          "Klikni dugme ispod da otvoriš ticket i dobiješ pomoć od našeg support tima."
-        )
+        .setTitle(t(app, "ticket_embed_title"))
+        .setDescription(t(app, "ticket_embed_desc"))
         .setColor(0x5865f2)
-        .setFooter({ text: "SkyHost | Support sistem" })
+        .setFooter({ text: t(app, "ticket_embed_footer") })
         .setTimestamp();
 
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`ticket_open:${role.id}`)
-          .setLabel("📩 Otvori Ticket")
+          .setLabel(t(app, "ticket_open_button"))
           .setStyle(ButtonStyle.Primary)
       );
 
@@ -66,7 +66,7 @@ export const ticketCommand: BotCommand = {
       }
 
       await interaction.reply({
-        content: `✅ Ticket panel je postavljen u ${channel}!`,
+        content: t(app, "ticket_setup_success", { channel: `${channel}` }),
         flags: 64,
       });
     }
@@ -75,7 +75,7 @@ export const ticketCommand: BotCommand = {
       const ch = interaction.channel;
       if (!ch || !ch.isTextBased() || !("name" in ch)) {
         await interaction.reply({
-          content: "❌ Ova komanda radi samo unutar ticket kanala.",
+          content: t(app, "ticket_not_found"),
           flags: 64,
         });
         return;
@@ -84,13 +84,13 @@ export const ticketCommand: BotCommand = {
       const name = (ch as { name: string }).name;
       if (!name.startsWith("ticket-")) {
         await interaction.reply({
-          content: "❌ Ovo nije ticket kanal.",
+          content: t(app, "ticket_not_ticket"),
           flags: 64,
         });
         return;
       }
 
-      await interaction.reply({ content: "🔒 Ticket se zatvara za 5 sekundi..." });
+      await interaction.reply({ content: t(app, "ticket_closing") });
       setTimeout(async () => {
         await ch.delete().catch(() => null);
       }, 5000);

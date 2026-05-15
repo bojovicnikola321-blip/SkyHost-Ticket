@@ -4,35 +4,36 @@ import {
   type ChatInputCommandInteraction,
 } from "discord.js";
 import type { BotCommand } from "../index";
+import { t } from "../i18n";
 
 export const muteCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("mute")
-    .setDescription("Timeout (mute) korisnika")
+    .setDescription("Timeout (mute) a user")
     .addUserOption((opt) =>
-      opt.setName("korisnik").setDescription("Korisnik").setRequired(true)
+      opt.setName("user").setDescription("User").setRequired(true)
     )
     .addIntegerOption((opt) =>
       opt
-        .setName("minuta")
-        .setDescription("Trajanje mute u minutama (max 40320 = 28 dana)")
+        .setName("minutes")
+        .setDescription("Mute duration in minutes (max 40320 = 28 days)")
         .setMinValue(1)
         .setMaxValue(40320)
         .setRequired(true)
     )
     .addStringOption((opt) =>
-      opt.setName("razlog").setDescription("Razlog mute").setRequired(false)
+      opt.setName("reason").setDescription("Reason for mute").setRequired(false)
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers) as SlashCommandBuilder,
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const target = interaction.options.getMember("korisnik");
-    const minutes = interaction.options.getInteger("minuta", true);
-    const razlog =
-      interaction.options.getString("razlog") ?? "Nije naveden razlog";
+    const app = interaction.applicationId;
+    const target = interaction.options.getMember("user");
+    const minutes = interaction.options.getInteger("minutes", true);
+    const reason = interaction.options.getString("reason") ?? t(app, "no_reason");
 
     if (!target || typeof target !== "object" || !("timeout" in target)) {
-      await interaction.reply({ content: "❌ Korisnik nije pronađen.", flags: 64 });
+      await interaction.reply({ content: t(app, "mute_not_found"), flags: 64 });
       return;
     }
 
@@ -43,18 +44,18 @@ export const muteCommand: BotCommand = {
     };
 
     if (member.permissions.has(PermissionFlagsBits.Administrator)) {
-      await interaction.reply({
-        content: "❌ Ne mogu da mutiram admina.",
-        flags: 64,
-      });
+      await interaction.reply({ content: t(app, "mute_is_admin"), flags: 64 });
       return;
     }
 
-    const ms = minutes * 60 * 1000;
-    await member.timeout(ms, razlog);
+    await member.timeout(minutes * 60 * 1000, reason);
 
     await interaction.reply({
-      content: `🔇 **${member.user.tag}** je mutiran na **${minutes} min**.\n📋 Razlog: ${razlog}`,
+      content: t(app, "mute_success", {
+        user: member.user.tag,
+        duration: String(minutes),
+        reason,
+      }),
     });
   },
 };
