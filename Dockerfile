@@ -1,15 +1,10 @@
 FROM node:22-alpine
 
-RUN npm install -g pnpm
+RUN corepack enable
 
 WORKDIR /app
 
-COPY pnpm-workspace.yaml ./
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-COPY tsconfig.base.json ./
-COPY tsconfig.json ./
-
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml tsconfig.base.json tsconfig.json ./
 COPY lib/ ./lib/
 COPY artifacts/api-server/ ./artifacts/api-server/
 
